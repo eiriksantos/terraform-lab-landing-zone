@@ -5,7 +5,7 @@ resource "aws_organizations_organization" "caylien" {
     "config.amazonaws.com",
   ]
 
-  feature_set = "ALL"
+  feature_set          = "ALL"
   enabled_policy_types = ["SERVICE_CONTROL_POLICY"]
 }
 
@@ -21,21 +21,21 @@ resource "aws_organizations_organizational_unit" "caylien_prod" {
 }
 
 # AWS Accounts
-resource "aws_organizations_account" "caylient_dev" {
-  name      = "ACCOUNT-DEV"
-  email     = "ej.zxc1992+accountdev@gmail.com"
-  role_name = "OrganizationAccountAccessRole"
-  parent_id = aws_organizations_organization.caylien.roots[0].id
-  close_on_deletion = true
-}
+# resource "aws_organizations_account" "caylien_dev" {
+#   name      = "ACCOUNT-DEV"
+#   email     = "ej.zxc1992+accountdev@gmail.com"
+#   role_name = "OrganizationAccountAccessRole"
+#   parent_id = aws_organizations_organization.caylien.roots[0].id
+#   close_on_deletion = true
+# }
 
-resource "aws_organizations_account" "caylien_prod" {
-  name      = "ACCOUNT-PROD"
-  email     = "ej.zxc1992+accountprod@gmail.com"
-  role_name = "OrganizationAccountAccessRole"
-  parent_id = aws_organizations_organization.caylien.roots[0].id
-  close_on_deletion = true
-}
+# resource "aws_organizations_account" "caylien_prod" {
+#   name      = "ACCOUNT-PROD"
+#   email     = "ej.zxc1992+accountprod@gmail.com"
+#   role_name = "OrganizationAccountAccessRole"
+#   parent_id = aws_organizations_organization.caylien.roots[0].id
+#   close_on_deletion = true
+# }
 
 # SCP
 data "aws_iam_policy_document" "scp_statement" {
@@ -76,7 +76,7 @@ data "aws_iam_policy_document" "scp_statement" {
 resource "aws_organizations_policy" "scp" {
   name    = "DenyPolicies"
   content = data.aws_iam_policy_document.scp_statement.json
-  
+
   depends_on = [
     aws_organizations_organization.caylien
   ]
@@ -90,4 +90,25 @@ resource "aws_organizations_policy_attachment" "dev_ou_policy_attach" {
 resource "aws_organizations_policy_attachment" "prod_ou_policy_attach" {
   policy_id = aws_organizations_policy.scp.id
   target_id = aws_organizations_organizational_unit.caylien_prod.id
+}
+
+# IAM
+
+resource "aws_iam_user" "tf_svc_accnt" {
+  name = "terraform-service-account"
+  path = "/system/"
+}
+
+data "aws_iam_policy_document" "tf_svc_accnt" {
+  statement {
+    effect    = "Allow"
+    actions   = ["ec2:Describe*"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_user_policy" "tf_svc_accnt" {
+  name   = "test"
+  user   = aws_iam_user.lb.name
+  policy = data.aws_iam_policy_document.lb_ro.json
 }
